@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en" data-resolution="portrait">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=1080, height=1920">
+    <title>Example composition</title>
+    <!-- Production projects vendor GSAP in assets/. The example loads the same version from the CDN. -->
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      /* ---------- palette: L light, B muted blue, D dark. No grids, dots or noise ----------
+         Fonts: production projects ship local woff2 files with @font-face. The example uses system fonts. */
+      :root {
+        --font: ui-sans-serif, system-ui, sans-serif;
+        --mono: ui-monospace, monospace;
+        --ink: #1a1d24; --muted: #667085; --hair: #e2e6ee;
+        --yellow: #ffd60a; --red: #e5484d; --red-d: #ff8a8f; --green: #2fa36b; --green-d: #6fd6a0;
+        --dmuted: #a3adc2; --bmuted: #b8c2dc;
+        --acc-l: #2456f5; --acc-d: #ffd60a;
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: #0e1116; }
+      #root { position: relative; width: 100%; height: 100%; overflow: hidden; font-family: var(--font); color: var(--ink); -webkit-font-smoothing: antialiased; }
+      svg { display: block; overflow: visible; }
+      .ic { width: 1em; height: 1em; flex: none; }
+      .abs { position: absolute; }
+      .kw { font-weight: 800; }
+      .bg-l .kw { color: var(--acc-l); }
+      .bg-b .kw, .bg-d .kw { color: var(--acc-d); }
+      .example { display: inline-block; font-size: 26px; font-weight: 700; border-radius: 999px; padding: 6px 18px; white-space: nowrap; }
+      .ex-d { color: #d3d9ea; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.2); }
+
+      /* ================= STAGE: full-frame background, content in .cam (1190 px). In "graphic" and "circle" layouts .cam moves down ================= */
+      #stage { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; overflow: hidden; background: #1e2a4a; isolation: isolate; }
+      .scene { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; overflow: hidden; opacity: 0; visibility: hidden; }
+      #sc1 { opacity: 1; visibility: visible; }
+      .cam { position: absolute; left: 0; top: 0; width: 1080px; height: 1190px; transform-origin: 540px 700px; }
+      .bg-l { background-color: #f1f3f7; background-image: radial-gradient(ellipse 75% 30% at 50% 22%, rgba(255,255,255,.95), rgba(255,255,255,0)), linear-gradient(180deg, #f7f8fa 0%, #eceff4 100%); }
+      .bg-b { background-color: #25325a; background-image: radial-gradient(ellipse 70% 32% at 50% 24%, rgba(140,160,220,.16), rgba(140,160,220,0)), linear-gradient(165deg, #1e2a4a 0%, #2e3b66 100%); }
+      .bg-d { background-color: #12161e; background-image: linear-gradient(180deg, #0e1116 0%, #161b26 100%); }
+      .glow { position: absolute; border-radius: 50%; pointer-events: none; background: radial-gradient(closest-side, rgba(110,130,200,.16), rgba(110,130,200,0)); }
+
+      .card-l { position: absolute; background: #fff; border: 1px solid var(--hair); border-radius: 32px; box-shadow: 0 30px 60px -30px rgba(30,42,74,.30), 0 2px 6px rgba(30,42,74,.06); color: var(--ink); }
+      .card-d { position: absolute; background: rgba(255,255,255,.045); border: 1px solid rgba(255,255,255,.11); border-radius: 32px; box-shadow: 0 40px 80px -40px rgba(0,0,0,.8); color: #fff; }
+      .tile { display: grid; place-items: center; flex: none; border-radius: 22px; }
+      .tile.ind { background: linear-gradient(135deg, #7584f2, #4c5bd4); color: #fff; box-shadow: 0 20px 44px -20px rgba(76,91,212,.7); }
+      .tile.ink { background: var(--ink); color: #fff; }
+      .tile.red { background: var(--red); color: #fff; }
+      .tile.glass { background: rgba(255,255,255,.1); color: #fff; }
+      .pill { display: inline-flex; align-items: center; gap: 12px; border-radius: 999px; white-space: nowrap; font-weight: 700; }
+      .head { position: absolute; left: 0; width: 1080px; text-align: center; font-weight: 500; letter-spacing: -.03em; line-height: 1.08; }
+      .head .w { display: inline-block; }
+      .okc { display: grid; place-items: center; width: 54px; height: 54px; border-radius: 50%; background: var(--green); color: #fff; font-size: 30px; flex: none; }
+
+      /* 1 · L · title and chips (split layout) */
+      #s1Tile { left: 450px; top: 360px; width: 180px; height: 180px; border-radius: 52px; font-size: 96px; }
+      #s1Head { top: 590px; font-size: 80px; color: var(--ink); }
+      #s1Chips { position: absolute; left: 0; top: 860px; width: 1080px; display: flex; flex-wrap: wrap; justify-content: center; gap: 12px 14px; padding: 0 30px; }
+      #s1Chips .c { display: inline-flex; align-items: center; gap: 12px; font-size: 32px; font-weight: 800; color: var(--ink); background: #fff; border: 1px solid var(--hair); border-radius: 999px; padding: 14px 26px; white-space: nowrap; box-shadow: 0 18px 40px -22px rgba(30,42,74,.4); }
+      #s1Chips .c .ic { font-size: 32px; color: var(--acc-l); }
+
+      /* 2 · D · incoming call -> 3D flip -> missed */
+      #s2Time { top: 175px; font-variant-numeric: tabular-nums; font-size: 150px; font-weight: 600; letter-spacing: -.04em; color: #fff; }
+      .callcard { left: 90px; top: 430px; width: 900px; height: 420px; padding: 44px; }
+      .callcard .row { display: flex; align-items: center; gap: 30px; }
+      .callcard b { display: block; font-size: 58px; font-weight: 800; letter-spacing: -.02em; }
+      .callcard small { display: block; font-size: 32px; color: var(--dmuted); font-weight: 600; margin-top: 6px; }
+      #s2Tile { position: relative; width: 140px; height: 140px; border-radius: 40px; font-size: 70px; }
+      .ring { position: absolute; left: 0; top: 0; width: 140px; height: 140px; border-radius: 40px; border: 3px solid rgba(140,155,255,.7); opacity: 0; }
+      #s2Btns { display: flex; justify-content: space-between; margin-top: 56px; padding: 0 30px; }
+      .cbtn { width: 120px; height: 120px; border-radius: 50%; display: grid; place-items: center; font-size: 56px; color: #fff; }
+      .cbtn.r { background: #d9474c; }
+      .cbtn.g { background: #2fa36b; box-shadow: 0 0 0 0 rgba(47,163,107,.5); }
+      #s2Back { visibility: hidden; opacity: 0; }
+      #s2Back b { color: var(--red-d); }
+      #s2Back .tile { width: 140px; height: 140px; border-radius: 40px; font-size: 70px; }
+      #s2Miss { display: flex; align-items: center; justify-content: space-between; margin-top: 60px; padding-top: 34px; border-top: 1px solid rgba(255,255,255,.1); }
+      #s2Miss span { font-size: 36px; font-weight: 700; color: var(--dmuted); }
+      #s2Miss em { font-style: normal; font-size: 34px; font-weight: 800; color: var(--red-d); border: 2px solid rgba(255,138,143,.6); border-radius: 16px; padding: 8px 22px; }
+      #s2Src { left: 0; top: 915px; width: 1080px; display: flex; justify-content: center; }
+      #s2Src span { font-size: 32px; color: #dfe4ee; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.14); padding: 12px 28px; }
+
+      /* 3 · B · grid of 20 tiles, every fifth one marked, then a card */
+      #s3Head { top: 150px; font-size: 60px; color: #fff; }
+      #s3Count { top: 228px; font-size: 150px; font-weight: 800; color: var(--red-d); letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+      #s3Count small { font-size: 60px; font-weight: 600; color: #fff; letter-spacing: -.02em; }
+      #s3Ex { left: 0; top: 410px; width: 1080px; display: flex; justify-content: center; }
+      #s3Grid { left: 279px; top: 480px; width: 522px; display: grid; grid-template-columns: repeat(5, 90px); gap: 18px; }
+      .lead { position: relative; width: 90px; height: 90px; border-radius: 22px; display: grid; place-items: center; font-size: 42px; color: #c9d2ea; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.16); }
+      .lead .x { position: absolute; right: -10px; top: -10px; width: 38px; height: 38px; border-radius: 50%; background: var(--red); color: #fff; display: grid; place-items: center; font-size: 22px; opacity: 0; }
+      #s3Card { left: 190px; top: 915px; width: 700px; height: 170px; padding: 0 36px; display: flex; align-items: center; gap: 28px; }
+      #s3Card .tile { width: 100px; height: 100px; font-size: 54px; border-radius: 28px; }
+      #s3Card b { display: block; font-size: 50px; font-weight: 800; letter-spacing: -.02em; }
+      #s3Card small { display: block; font-size: 30px; color: var(--muted); font-weight: 700; margin-top: 4px; }
+
+      /* 4 · D · stopwatch counter */
+      #s4Title { top: 150px; font-size: 66px; color: #fff; }
+      #s4Watch { left: 280px; top: 270px; width: 520px; height: 520px; }
+      #s4Num { left: 280px; top: 270px; width: 520px; height: 520px; display: flex; align-items: baseline; justify-content: center; gap: 14px; padding-top: 150px; color: #fff; }
+      #s4Dig { font-size: 250px; font-weight: 800; letter-spacing: -.05em; line-height: 1; font-variant-numeric: tabular-nums; color: var(--yellow); }
+      #s4Unit { font-size: 70px; font-weight: 700; }
+      #s4Sub { left: 0; top: 850px; width: 1080px; display: flex; justify-content: center; }
+      #s4Sub span { font-size: 34px; color: #fff; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.18); padding: 12px 28px; }
+      #s4Sub .ic { color: var(--green-d); }
+
+      /* 5 · B · path of nodes that light up on their words (presenter in a circle) */
+      #s5Title { top: 110px; font-size: 60px; color: #fff; }
+      #s5Line { left: 0; top: 0; width: 1080px; height: 1190px; }
+      .node { left: 130px; width: 820px; height: 118px; display: flex; align-items: center; gap: 26px; padding: 0 26px; }
+      .node .tile { width: 72px; height: 72px; font-size: 38px; border-radius: 20px; }
+      .node .lbl { flex: 1; }
+      .node b { display: block; font-size: 40px; font-weight: 800; letter-spacing: -.02em; }
+      .node small { display: block; font-size: 28px; color: var(--dmuted); font-weight: 600; margin-top: 2px; }
+      .node small i { font-style: normal; display: inline-block; }
+      .node .okc { opacity: 0; }
+      .node .next { font-size: 26px; font-weight: 700; color: #8d96aa; }
+      #n1 { top: 250px; } #n2 { top: 388px; } #n3 { top: 526px; } #n4 { top: 664px; } #n5 { top: 802px; }
+
+      /* 6 · L · call to action (split layout) */
+      #s6Icon { left: 450px; top: 340px; width: 180px; height: 180px; border-radius: 50%; font-size: 80px; }
+      #s6Pill { left: 100px; top: 595px; width: 880px; height: 180px; border-radius: 90px; background: var(--yellow); color: var(--ink); box-shadow: 0 34px 70px -30px rgba(150,110,0,.55); display: flex; align-items: center; justify-content: center; font-size: 58px; font-weight: 800; letter-spacing: -.02em; white-space: nowrap; }
+      #s6Ring { left: 100px; top: 595px; width: 880px; height: 180px; border-radius: 90px; border: 4px solid rgba(230,190,0,.9); opacity: 0; }
+      #s6Sub { top: 855px; font-size: 46px; color: var(--ink); }
+      #s6Sub .kw { font-size: 58px; }
+
+      /* plate on top (recolored for each background) */
+      #plate { position: absolute; left: 0; top: 252px; width: 1080px; display: flex; justify-content: center; z-index: 40; }
+      #plateBox { display: flex; align-items: center; gap: 16px; font-size: 38px; font-weight: 800; letter-spacing: -.01em; padding: 14px 34px 14px 26px; border-radius: 24px; background: #ffffff; color: #1a1d24; border: 1px solid #e2e6ee; }
+      #plateDot { width: 16px; height: 16px; border-radius: 50%; background: var(--yellow); }
+
+      /* ================= PRESENTER =================
+         In production #faceMedia holds the avatar video, cut into clips on the same segments as the voice track.
+         Here it is a CSS placeholder: a plain silhouette, no person, no media file.
+         #faceMedia is larger than #faceBox on purpose: the box is a crop window, so overflow is allowed. */
+      #faceLayer { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; z-index: 10; pointer-events: none; }
+      #facePanel { position: absolute; left: 0; top: 1240px; width: 1080px; height: 680px; background: #eceff4; }
+      #faceBox { position: absolute; left: 36px; top: 1256px; width: 1008px; height: 632px; border-radius: 44px; overflow: hidden; background: #140f2a; border: 2px solid rgba(255,255,255,.18); box-shadow: 0 30px 60px -30px rgba(0,0,0,.6); }
+      #faceMedia { position: absolute; left: -46px; top: -593px; width: 1100px; height: 1956px; background: linear-gradient(180deg, #3a4670 0%, #232b4a 60%, #1a2038 100%); }
+      .phHead { position: absolute; left: 37%; top: 31%; width: 26%; height: 14.6%; border-radius: 50%; background: rgba(255,255,255,.16); }
+      .phBody { position: absolute; left: 20%; top: 47%; width: 60%; height: 53%; border-radius: 48% 48% 0 0; background: rgba(255,255,255,.12); }
+      #faceTag { position: absolute; left: 22px; bottom: 16px; display: flex; }
+      #faceTag span { white-space: nowrap; font-size: 22px; font-weight: 800; letter-spacing: .12em; color: #1a1d24; background: #ffd60a; border-radius: 999px; padding: 6px 18px; }
+
+      /* ================= CAPTIONS: two tiers (small: the link words, big: the key word) ================= */
+      #capband { position: absolute; left: 0; top: 1060px; width: 1080px; height: 180px; overflow: hidden; z-index: 24; }
+      #capbgW { position: absolute; left: 0; top: 0; width: 1080px; height: 180px; }
+      #capbg { position: absolute; left: 0; top: 0; width: 1080px; height: 180px; background: #1e2330; }
+      .cap { position: absolute; left: 0; top: 0; width: 1080px; height: 180px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #fff; opacity: 0; }
+      /* centered at x 540; a long line shifts left so its right edge stays left of the platform buttons (x 895) */
+      .cap .capIn { position: absolute; left: 540px; top: 50%; display: flex; flex-direction: column; align-items: center; gap: 2px; transform: translate(min(-50%, calc(355px - 100%)), -50%); }
+      .cap .t-s { font-size: 40px; font-weight: 500; letter-spacing: -.01em; line-height: 1.05; white-space: nowrap; }
+      .cap .t-m { font-size: 64px; font-weight: 500; letter-spacing: -.02em; white-space: nowrap; }
+      .cap .t-b { font-weight: 800; letter-spacing: -.03em; line-height: 1.0; color: var(--acc-d); white-space: nowrap; }
+      .cap .t-b.red { color: var(--red-d); }
+    </style>
+  </head>
+  <body>
+    <!-- icons: Lucide (ISC license), inlined as symbols -->
+    <svg width="0" height="0" style="position:absolute">
+      <defs>
+        <symbol id="i-phone" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" /></symbol>
+        <symbol id="i-phone-in" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 2v6h6M22 2l-6 6" /><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" /></g></symbol>
+        <symbol id="i-phone-miss" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 2 6 6M22 2l-6 6" /><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" /></g></symbol>
+        <symbol id="i-phone-off" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91" /><path d="M22 2 2 22" /></g></symbol>
+        <symbol id="i-user" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></g></symbol>
+        <symbol id="i-check" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d="M20 6L9 17l-5-5" /></symbol>
+        <symbol id="i-x" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" d="M18 6 6 18M6 6l12 12" /></symbol>
+        <symbol id="i-sparkles" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594zM20 2v4m2-2h-4" /><circle cx="4" cy="20" r="2" /></g></symbol>
+        <symbol id="i-send" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11zm7.318-19.539l-10.94 10.939" /></symbol>
+        <symbol id="i-layers" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 10 5-10 5L2 7z" /><path d="m2 17 10 5 10-5M2 12l10 5 10-5" /></g></symbol>
+        <symbol id="i-file" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" /><path d="M14 2v4a2 2 0 0 0 2 2h4M16 13H8M16 17H8M10 9H8" /></g></symbol>
+        <symbol id="i-search" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></g></symbol>
+        <symbol id="i-film" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.18" /><path d="M7 2v20M17 2v20M2 12h20M2 7h5M2 17h5M17 17h5M17 7h5" /></g></symbol>
+        <symbol id="i-code" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="m16 18 6-6-6-6M8 6l-6 6 6 6" /></symbol>
+        <symbol id="i-clock" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></g></symbol>
+      </defs>
+    </svg>
+
+    <div id="root" data-composition-id="main" data-start="0" data-duration="17" data-width="1080" data-height="1920">
+      <!-- =================== STAGE (full-frame background) =================== -->
+      <div id="stage">
+
+        <!-- 1 · L · title and chips (split) -->
+        <div id="sc1" class="scene bg-l"><div class="cam">
+          <div id="s1Tile" class="tile ind abs"><svg class="ic"><use href="#i-sparkles" /></svg></div>
+          <div id="s1Head" class="head"><span class="w">One HTML file,</span><div style="height:6px"></div><span class="w kw">one short video</span></div>
+          <div id="s1Chips">
+            <span class="c" id="s1c1"><svg class="ic"><use href="#i-film" /></svg>1080 × 1920</span>
+            <span class="c" id="s1c2"><svg class="ic"><use href="#i-clock" /></svg>30 fps</span>
+            <span class="c" id="s1c3"><svg class="ic"><use href="#i-code" /></svg>GSAP timeline</span>
+          </div>
+        </div></div>
+
+        <!-- 2 · D · incoming call -> flip -> missed (graphic) -->
+        <div id="sc2" class="scene bg-d"><div class="cam">
+          <div class="glow" style="left:140px;top:330px;width:800px;height:640px"></div>
+          <div id="s2Time" class="head">20:40</div>
+          <div id="s2Front" class="card-d callcard">
+            <div class="row">
+              <div id="s2Tile" class="tile ind"><i class="ring" id="rg1"></i><i class="ring" id="rg2"></i><i class="ring" id="rg3"></i><svg class="ic"><use href="#i-phone-in" /></svg></div>
+              <div><b>Incoming call</b><small>sample caller · sample request</small></div>
+            </div>
+            <div id="s2Btns"><span class="cbtn r"><svg class="ic"><use href="#i-phone-off" /></svg></span><span class="cbtn g"><svg class="ic"><use href="#i-phone" /></svg></span></div>
+          </div>
+          <div id="s2Back" class="card-d callcard">
+            <div class="row">
+              <span class="tile red"><svg class="ic"><use href="#i-phone-miss" /></svg></span>
+              <div><b>Missed call</b><small>20:40 · sample request</small></div>
+            </div>
+            <div id="s2Miss"><span>nobody answered</span><em>0 replies</em></div>
+          </div>
+          <div id="s2Src" class="abs"><span class="pill">placeholder source label</span></div>
+        </div></div>
+
+        <!-- 3 · B · grid, one of five marked, then a card (graphic) -->
+        <div id="sc3" class="scene bg-b"><div class="cam">
+          <div id="s3Head" class="head"><span class="w">Sample</span> <span class="w">data</span></div>
+          <div id="s3Count" class="head">1 <small>of</small> 5</div>
+          <div id="s3Ex" class="abs"><span class="example ex-d">example numbers</span></div>
+          <div id="s3Grid" class="abs"></div>
+          <div id="s3Card" class="card-l"><span class="tile ink"><svg class="ic"><use href="#i-layers" /></svg></span><div><b>Placeholder card</b><small>secondary text goes here</small></div></div>
+        </div></div>
+
+        <!-- 4 · D · stopwatch counter (graphic) -->
+        <div id="sc4" class="scene bg-d"><div class="cam">
+          <div class="glow" style="left:190px;top:200px;width:700px;height:660px"></div>
+          <div id="s4Title" class="head">Counts up to</div>
+          <svg id="s4Watch" class="abs" viewBox="0 0 520 520">
+            <circle cx="260" cy="260" r="236" fill="rgba(255,255,255,.03)" stroke="rgba(255,255,255,.10)" stroke-width="16" />
+            <circle id="s4Arc" cx="260" cy="260" r="236" fill="none" stroke="#6fd6a0" stroke-width="16" stroke-linecap="round" transform="rotate(-90 260 260)" />
+          </svg>
+          <div id="s4Num" class="abs"><span id="s4Dig">0</span><span id="s4Unit">sec</span></div>
+          <div id="s4Sub" class="abs"><span class="pill"><svg class="ic"><use href="#i-clock" /></svg>driven by timeline time</span></div>
+        </div></div>
+
+        <!-- 5 · B · path of nodes (presenter in a circle) -->
+        <div id="sc5" class="scene bg-b"><div class="cam">
+          <div id="s5Title" class="head">From script <span class="kw">to video</span></div>
+          <svg id="s5Line" class="abs" viewBox="0 0 1080 1190" />
+          <div id="n1" class="card-d abs node"><span class="tile glass"><svg class="ic"><use href="#i-file" /></svg></span><div class="lbl"><b>Script</b><small>one section per video</small></div><span class="okc"><svg class="ic"><use href="#i-check" /></svg></span></div>
+          <div id="n2" class="card-d abs node"><span class="tile glass"><svg class="ic"><use href="#i-search" /></svg></span><div class="lbl"><b>Checks</b><small>text and hook</small></div><span class="okc"><svg class="ic"><use href="#i-check" /></svg></span></div>
+          <div id="n3" class="card-d abs node"><span class="tile glass"><svg class="ic"><use href="#i-layers" /></svg></span><div class="lbl"><b>Composition</b><small><i id="q1">scenes</i> <i id="q2">· captions</i> <i id="q3">· layouts</i></small></div><span class="okc"><svg class="ic"><use href="#i-check" /></svg></span></div>
+          <div id="n4" class="card-d abs node"><span class="tile glass"><svg class="ic"><use href="#i-film" /></svg></span><div class="lbl"><b>Render</b><small>MP4, 1080 × 1920</small></div><span class="next">next</span></div>
+          <div id="n5" class="card-d abs node"><span class="tile glass"><svg class="ic"><use href="#i-send" /></svg></span><div class="lbl"><b>Publish</b><small>Reels and Shorts</small></div><span class="next">next</span></div>
+        </div></div>
+
+        <!-- 6 · L · call to action (split) -->
+        <div id="sc6" class="scene bg-l"><div class="cam">
+          <div id="s6Icon" class="tile ink abs"><svg class="ic"><use href="#i-send" /></svg></div>
+          <div id="s6Ring" class="abs"></div>
+          <div id="s6Pill" class="abs">Call to action goes here</div>
+          <div id="s6Sub" class="head"><span class="w">second line of text</span><div style="height:8px"></div><span class="w kw">key words here</span></div>
+        </div></div>
+      </div>
+
+      <!-- =================== PRESENTER (placeholder) =================== -->
+      <div id="faceLayer">
+        <div id="facePanel"></div>
+        <div id="faceBox">
+          <div id="faceMedia" data-layout-allow-overflow><div class="phHead" data-layout-allow-overflow></div><div class="phBody" data-layout-allow-overflow></div></div>
+          <div id="faceTag"><span>PRESENTER · PLACEHOLDER</span></div>
+        </div>
+      </div>
+
+      <!-- =================== CAPTIONS =================== -->
+      <div id="capband"><div id="capbgW"><div id="capbg"></div></div></div>
+
+      <!-- constant plate on top -->
+      <div id="plate"><div id="plateBox"><i id="plateDot"></i><span>Example composition</span></div></div>
+    </div>
+
+    <script src="timeline.js"></script>
+    <script>
+      // the key matches data-composition-id on #root; the fallback lets the page run in a plain browser too
+      window.__timelines = window.__timelines || {};
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>
