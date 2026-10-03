@@ -1,0 +1,19 @@
+[project]
+name = "ai-video-production-tools"
+version = "0.1.0"
+description = "Quality gates of an AI video pipeline: script checks and the hook gate."
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "Ievgen Akhrimienko" }]
+dependencies = []
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]
