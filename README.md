@@ -4,6 +4,10 @@
 
 A pipeline that turns a script into a short vertical video for Instagram Reels and YouTube Shorts. Each video is an HTML page animated with one GSAP timeline and rendered to MP4 with HyperFrames. Python tools check the script before recording and the first seconds of the finished video before anyone sees it. The same system also makes Instagram carousels.
 
+![Four frames from real videos made with the pipeline](docs/screenshots/hero-frames.jpg)
+
+*Four frames from real videos made with this pipeline: the hook, two full graphic scenes, and the split screen with the presenter below and a two-tier caption. The texts are in Russian, because the videos were made for a Russian-speaking audience.*
+
 ## The problem
 
 Making many short videos by hand is slow, and the result changes from video to video. Each one needs a script, a voice track, shots, captions, motion graphics, sound and a color pass. The same mistakes come back: a silent first second, filler phrases in the script, captions that drift away from the voice.
@@ -18,6 +22,24 @@ Making many short videos by hand is slow, and the result changes from video to v
 - A task runner for generative image and video models. It uploads reference images, creates a task, polls it and downloads the result, with retries.
 - A color grade in FFmpeg with day and night presets, so shots from different models look like one film.
 - The same steps and review gates for Instagram carousels.
+
+## Screenshots
+
+![Example composition](docs/screenshots/composition-example.jpg)
+
+The example composition from this repository, rendered at four points of its timeline. You can see the split screen, the 3D card after its flip, the counter that lands on five and the presenter in a circle. The presenter is a placeholder.
+
+![Two endings](docs/screenshots/two-endings.jpg)
+
+The last frame of one real video in its two versions. The Instagram ending is on the left, the YouTube Shorts ending is on the right. Both come from the same composition.
+
+![Script checker output](docs/screenshots/check-script.png)
+
+The script checker on the sample file in `tests/fixtures`. The first script passes. The second one is a draft full of typical mistakes, and every problem is listed with the sentence it comes from.
+
+![Hook gate output](docs/screenshots/check-hook.png)
+
+The hook gate on the first seconds of four real videos. All four pass. The fifth file is a copy of one video with the voice moved 1.6 seconds later on purpose, and the gate rejects it.
 
 ## How it works
 
